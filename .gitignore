@@ -74,3 +74,11 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 index.html
+
+# python venv
+bin
+lib
+lib64
+pyvenv.cfg
+
+

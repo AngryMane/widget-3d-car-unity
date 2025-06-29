@@ -1,43 +1,166 @@
-# Introduction
+# 3D Car Control Server
 
-The 3D-Car project is an application that displays and controls a 3D car model in a browser using Unity WebGL build. Users can interact with the car through a web interface embedded in Playground, which provides APIs to control the car's functions.
+Unity WebGLビルドを使用した3D車両制御システムです。gRPCサーバーとWebインターフェースを統合し、KUKSA VALプロトコルに基づく車両制御APIを提供します。
 
-## Technologies Used
-- Blender: Editing and optimizing the 3D car model.
-- Unity WebGL: Exporting the car model as WebGL to run in a browser.
-- HTML, JavaScript: Web interface for displaying and controlling the car.
-  
-## Workflow
-- Edit the car model in Blender and export it to Unity.
-- In Unity, set up components and program the car's functions.
-- Build the Unity project as WebGL and embed it into Playground.
-- Playground provides APIs to communicate with the WebGL build.
-- The HTML interface receives data from the Playground API and controls the car model.
-  
-## Directory Structure
+## 機能
+
+- **Unity WebGL統合**: `Build/widget-3d-car-unity.loader.js`を使用してブラウザに3D車両を表示
+- **gRPCサーバー**: KUKSA VALプロトコルに基づく車両制御API
+- **WebSocket通信**: リアルタイムでの車両状態更新
+- **Webインターフェース**: ブラウザベースの制御パネル
+
+## 技術スタック
+
+- **Python**: メインサーバー実装
+- **gRPC**: 車両制御API
+- **FastAPI**: Webサーバー
+- **WebSocket**: リアルタイム通信
+- **Unity WebGL**: 3D車両表示
+- **Protocol Buffers**: KUKSA VALプロトコル
+
+## セットアップ
+
+### 1. 依存関係のインストール
+
+```bash
+pip install -r requirements.txt
 ```
-3D-Car/
-¦-- Playground Unity/                 # Folder containing all Unity assets
-¦-- Build/                            # Unity WebGL build
-¦-- Web/                                       
-¦   +-- MainIndex.html               # Folder containing HTML files and web resources
-¦   +-- FromUnity.js                 # Handles interaction with MainIndex.html from Unity
-¦-- README.md                        # Project documentation
+
+### 2. Protocol Buffersファイルの生成
+
+```bash
+python generate_proto.py
 ```
 
-## Usage Guide
-- Run WebGL Build:
-- Open the Build/ folder and run the WebGL build.
-- Embed MainIndex.html into Playground to connect with the API.
-  
-## Integration with Playground:
-- Playground sends control data to WebGL via API.
-- Actions such as changing the car color, adjusting speed, etc., are executed using Unity functions.
-  
-## Contribution
-For any suggestions or improvements, please open an issue or submit a pull request!
+### 3. サーバーの起動
 
-The project is under development, please update the documentation as changes occur.
+```bash
+python car_control_server.py
+```
+
+サーバーは以下のポートで起動します：
+- **Webサーバー**: http://localhost:8000
+- **gRPCサーバー**: localhost:50051
+
+## 使用方法
+
+### Webインターフェース
+
+1. ブラウザで http://localhost:8000 にアクセス
+2. Unity WebGLビルドが読み込まれ、3D車両が表示されます
+3. 右上の制御パネルから車両を操作できます
+
+### gRPC API
+
+gRPCクライアントの使用例：
+
+```bash
+python grpc_client_example.py
+```
+
+### サポートされている車両制御
+
+#### ドア制御
+- `Vehicle.Cabin.Door.Row1.DriverSide.IsOpen` (boolean)
+- `Vehicle.Cabin.Door.Row1.DriverSide.IsLocked` (boolean)
+- `Vehicle.Cabin.Door.Row1.DriverSide.Position` (uint8)
+
+#### ライト制御
+- `Vehicle.Body.Lights.Beam.High.IsOn` (boolean)
+- `Vehicle.Body.Lights.Beam.Low.IsOn` (boolean)
+- `Vehicle.Body.Lights.Brake.IsActive` (boolean)
+- `Vehicle.Body.Lights.Hazard.IsSignaling` (boolean)
+
+#### シート制御
+- `Vehicle.Cabin.Seat.Row1.DriverSide.Position` (uint8)
+- `Vehicle.Cabin.Seat.Row1.DriverSide.Height` (uint8)
+
+#### トランク制御
+- `Vehicle.Body.Trunk.Front.IsOpen` (boolean)
+- `Vehicle.Body.Trunk.Rear.IsOpen` (boolean)
+
+#### その他
+- `Vehicle.AverageSpeed` (float)
+- `Vehicle.Body.Windshield.Front.Wiping.Mode` (string)
+
+## API仕様
+
+### gRPCサービス
+
+KUKSA VALプロトコルに基づく以下のサービスを提供：
+
+- `Get`: 車両データの取得
+- `Set`: 車両データの設定
+- `Subscribe`: 車両データの購読
+- `GetServerInfo`: サーバー情報の取得
+
+### WebSocket API
+
+リアルタイム通信のためのWebSocketエンドポイント：
+
+- **接続**: `ws://localhost:8000/ws`
+- **メッセージ形式**: JSON
+
+```json
+{
+  "type": "set_value",
+  "path": "Vehicle.Cabin.Door.Row1.DriverSide.IsOpen",
+  "value": true
+}
+```
+
+## プロジェクト構造
+
+```
+widget-3d-car-unity/
+├── car_control_server.py      # メインサーバー
+├── generate_proto.py          # Protocol Buffers生成スクリプト
+├── grpc_client_example.py     # gRPCクライアント例
+├── requirements.txt           # Python依存関係
+├── kuksa_val_v1/             # 生成されたProtocol Buffers
+├── proto/                    # Protocol Buffers定義
+│   └── kuksa/val/v1/
+│       ├── val.proto
+│       └── types.proto
+├── Build/                    # Unity WebGLビルド
+└── TemplateData/             # Unityテンプレートデータ
+```
+
+## 開発
+
+### 新しい車両制御の追加
+
+1. `car_control_server.py`の`VehicleState`クラスに新しいパスを追加
+2. メタデータを定義
+3. Unity側で対応するコンポーネントを実装
+
+### カスタマイズ
+
+- **ポート変更**: `car_control_server.py`のポート設定を変更
+- **車両モデル**: Unityプロジェクトで新しい3Dモデルを使用
+- **API拡張**: KUKSA VALプロトコルに基づいて新しいAPIを追加
+
+## トラブルシューティング
+
+### Unity WebGLが読み込まれない
+
+1. `Build/`ディレクトリにUnity WebGLファイルが存在することを確認
+2. ブラウザのコンソールでエラーメッセージを確認
+3. Webサーバーが正しく起動していることを確認
+
+### gRPC接続エラー
+
+1. gRPCサーバーがポート50051で起動していることを確認
+2. ファイアウォール設定を確認
+3. Protocol Buffersファイルが正しく生成されていることを確認
+
+## ライセンス
+
+このプロジェクトはApache License 2.0の下で公開されています。
+
+## 貢献
+
+プルリクエストやイシューの報告を歓迎します。
 
 # List APIs:
 
@@ -170,7 +293,7 @@ let OBJECT_MAPPING = [
 3. Find and download the version [Unity 2022.3.7f1](https://unity.com/releases/editor/qa/lts-releases).
 4. Download the **.unityhub** install file and open it to install via Unity Hub.
 
-> ✅ **Make sure to select “WebGL Build Support” during installation.**
+> ✅ **Make sure to select "WebGL Build Support" during installation.**
 
 If you've already installed Unity without WebGL:
 - Go to **Installs** tab → click **⋮** next to version 2022.3.7f1 → select **"Add Modules"** → install **WebGL Build Support**.
